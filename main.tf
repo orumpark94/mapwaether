@@ -46,7 +46,7 @@ module "eks" {
 }
 
 module "security" {
-  source = "./modules/security"
+  source = "./modules/infra/security"
   name   = var.name
   vpc_id = module.vpc.vpc_id
 }
