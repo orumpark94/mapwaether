@@ -40,4 +40,4 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          aws s3 sync ./frontend/build s3://my-weather-frontend-demo-123456 --delete
+          aws s3 sync ./frontend/build s3://map-weather-seraching --delete
