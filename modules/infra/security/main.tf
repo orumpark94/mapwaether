@@ -63,3 +63,41 @@ resource "aws_security_group" "eks" {
     ManagedBy = "Terraform"
   }
 }
+
+# ALB용 SG
+resource "aws_security_group" "alb" {
+  name        = "${var.name}-alb-sg"
+  description = "Security Group for ALB (map-api only)"
+  vpc_id      = var.vpc_id
+
+  # 외부에서 ALB로 접근하는 HTTP (80)
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # 외부에서 ALB로 접근하는 HTTPS (443)
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # ALB → EKS로 나가는 트래픽은 EKS SG에서 허용하면 됨
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name      = "${var.name}-alb-sg"
+    Project   = var.name
+    ManagedBy = "Terraform"
+  }
+}
