@@ -22,7 +22,7 @@ resource "aws_launch_template" "eks" {
   name_prefix   = "${var.name}-eks-node-"
   image_id      = data.aws_ami.eks_worker.id  # (위에서 조회한 최신 EKS 워커 AMI 사용)
   instance_type = var.node_instance_type
-  vpc_security_group_ids = [aws_security_group.eks.id]  # 🔥 SG 단일화!
+  vpc_security_group_ids = [var.eks_sg_id]  # 🔥 SG 외부 모듈에서 전달받음
 }
 
 # (3) EKS 클러스터 (기존과 동일, 내가 만든 SG만 할당)
@@ -32,7 +32,7 @@ resource "aws_eks_cluster" "this" {
 
   vpc_config {
     subnet_ids         = var.private_subnet_ids
-    security_group_ids = [aws_security_group.eks.id]
+    security_group_ids = [var.eks_sg_id]  # ✅ 외부에서 전달
     endpoint_private_access = true
     endpoint_public_access  = false
   }
@@ -71,4 +71,3 @@ resource "aws_ssm_parameter" "eks_cluster_name" {
   type  = "String"
   value = aws_eks_cluster.this.name
 }
-
