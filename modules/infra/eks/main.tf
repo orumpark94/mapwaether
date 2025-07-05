@@ -68,7 +68,7 @@ resource "aws_eks_cluster" "this" {
     subnet_ids              = var.private_subnet_ids
     security_group_ids      = [var.eks_sg_id]
     endpoint_private_access = true
-    endpoint_public_access  = false
+    endpoint_public_access  = true
   }
 
   depends_on = [aws_iam_role.eks_cluster]
