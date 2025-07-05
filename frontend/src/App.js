@@ -25,7 +25,7 @@ function App() {
   const onMapClick = (lat, lon) => {
     setMarker({ lat, lon });
 
-    fetch(`${process.env.REACT_APP_ALB_URL}/weather?lat=${lat}&lon=${lon}`)
+    fetch(`${process.env.REACT_APP_ALB_URL}/map/weather?lat=${lat}&lon=${lon}`)
       .then((res) => res.json())
       .then((data) => setWeather(data))
       .catch(() =>

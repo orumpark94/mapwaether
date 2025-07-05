@@ -12,7 +12,7 @@ resource "aws_lb" "this" {
 # Map API Target Group (port 3000)
 resource "aws_lb_target_group" "map" {
   name     = "${var.name}-map-tg"
-  port     = 3000
+  port     = 30000
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
