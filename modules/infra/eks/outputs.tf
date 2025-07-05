@@ -6,14 +6,15 @@ output "eks_cluster_endpoint" {
   value = aws_eks_cluster.this.endpoint
 }
 
-output "eks_cluster_security_group_id" {
-  value = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
-}
-
 output "node_group_name" {
   value = aws_eks_node_group.this.node_group_name
 }
 
 output "node_role_arn" {
   value = aws_iam_role.eks_node.arn
+}
+
+output "eks_sg_id" {
+  description = "EKS 클러스터 및 노드에 할당된 보안 그룹 ID"
+  value       = var.eks_sg_id
 }
