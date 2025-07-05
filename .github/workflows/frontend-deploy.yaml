@@ -19,8 +19,17 @@ jobs:
       - name: Create React App in VM
         run: |
           npx create-react-app frontend
-          rm frontend/src/App.js
-          cp frontend/src/app.js frontend/src/App.js
+          if [ -f frontend/src/app.js ]; then
+            rm frontend/src/App.js
+            cp frontend/src/app.js frontend/src/App.js
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
 
       - name: Get Backend URL from SSM and create .env
         env:
@@ -37,12 +46,6 @@ jobs:
         run: npm run build
         working-directory: ./frontend
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
       - name: Deploy to S3
-        run: aws s3 sync ./frontend/build s3://my-weather-frontend-demo-123456 --delete
+        run: |
+          aws s3 sync ./frontend/build s3://my-weather-frontend-demo-123456 --delete
