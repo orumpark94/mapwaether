@@ -34,7 +34,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      # 여긴 별도 backend-config 필요 없음 (코드에 backend "s3"로 이미 지정했으므로)
       - name: Terraform Init
         run: terraform init
 
@@ -51,3 +50,16 @@ jobs:
             echo "Invalid action input. Use apply or destroy."
             exit 1
           fi
+
+      # ✅ Terraform output에서 eks_cluster_name 읽기
+      - name: Get EKS Cluster Name from Terraform output
+        id: get_eks_name
+        run: |
+          echo "EKS_CLUSTER_NAME=$(terraform output -raw eks_cluster_name)" >> $GITHUB_ENV
+
+      # ✅ kubectl 구성
+      - name: Configure kubectl for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ap-northeast-2 \
+            --name ${{ env.EKS_CLUSTER_NAME }}
