@@ -16,16 +16,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Clean up existing frontend directory
-        run: rm -rf frontend
-
-      - name: Create React App in VM
-        run: npx create-react-app frontend
-
-      - name: Copy custom App.js
-        run: |
-          cp src/app.js frontend/src/App.js
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
