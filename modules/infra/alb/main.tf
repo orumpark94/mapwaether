@@ -63,3 +63,10 @@ resource "aws_lb_listener_rule" "map" {
     }
   }
 }
+
+# 🔧 ALB DNS 주소를 SSM에 저장 (S3에서 CORS용으로 사용할 수 있도록)
+resource "aws_ssm_parameter" "alb_dns" {
+  name  = "/mapweather/alb-dns"
+  type  = "String"
+  value = aws_lb.this.dns_name
+}
