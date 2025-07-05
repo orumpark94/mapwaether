@@ -1,0 +1,18 @@
+replicaCount: 2
+
+image:
+  repository: 863676520919.dkr.ecr.ap-northeast-2.amazonaws.com/map-weather
+  tag: weather-api-1.0
+  pullPolicy: Always
+
+containerPort: 3001
+
+service:
+  type: ClusterIP
+  port: 80
+
+env:
+  - name: AWS_REGION
+    value: ap-northeast-2
+  - name: WEATHER_PARAM_NAME
+    value: /dev/weather-api/openweather-api-key

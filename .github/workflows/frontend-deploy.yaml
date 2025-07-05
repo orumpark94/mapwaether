@@ -1,0 +1,45 @@
+name: Deploy Frontend to S3
+
+on:
+  workflow_dispatch:   # 수동 트리거
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # SSM에서 백엔드 엔드포인트 등 환경변수 가져와서 .env 파일 생성
+      - name: Get Backend URL from SSM and create .env
+        env:
+          AWS_DEFAULT_REGION: ap-northeast-2
+        run: |
+          BACKEND_URL=$(aws ssm get-parameter --name "/app/BACKEND_URL" --with-decryption --query 'Parameter.Value' --output text)
+          echo "REACT_APP_BACKEND_URL=$BACKEND_URL" > ./frontend/.env
+          # (선택) Google Maps API Key도 SSM이나 GitHub Secrets에서 주입 가능
+          echo "REACT_APP_GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}" >> ./frontend/.env
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: ./frontend
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Deploy to S3
+        run: aws s3 sync ./frontend/build s3://my-weather-frontend-demo-123456 --delete
