@@ -132,6 +132,14 @@ resource "kubernetes_config_map" "aws_auth" {
         ]
       }
     ])
+
+    mapUsers = yamlencode([
+      {
+        userarn  = "arn:aws:iam::863676520919:user/mapweather"
+        username = "mapweather"
+        groups   = ["system:masters"]
+      }
+    ])
   }
 
   depends_on = [
