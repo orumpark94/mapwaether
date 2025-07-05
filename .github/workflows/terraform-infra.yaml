@@ -51,15 +51,18 @@ jobs:
             exit 1
           fi
 
-      # ✅ Terraform output에서 eks_cluster_name 읽기
       - name: Get EKS Cluster Name from Terraform output
         id: get_eks_name
         run: |
           echo "EKS_CLUSTER_NAME=$(terraform output -raw eks_cluster_name)" >> $GITHUB_ENV
 
-      # ✅ kubectl 구성
       - name: Configure kubectl for EKS
         run: |
           aws eks update-kubeconfig \
             --region ap-northeast-2 \
             --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Apply aws-auth ConfigMap
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          kubectl apply -f modules/infra/eks/aws-auth.yaml
