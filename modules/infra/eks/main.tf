@@ -11,13 +11,66 @@ data "aws_ami" "eks_worker" {
     name   = "name"
     values = ["amazon-eks-node-*"]
   }
+
   filter {
     name   = "architecture"
     values = ["x86_64"]
   }
 }
 
-# (2) Launch Template 생성 (여기서 SG 단일화!)
+# (2) IAM 역할 - EKS 클러스터용
+resource "aws_iam_role" "eks_cluster" {
+  name = "${var.name}-eks-cluster-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Principal = {
+        Service = "eks.amazonaws.com"
+      },
+      Effect = "Allow",
+      Sid    = ""
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+  role       = aws_iam_role.eks_cluster.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+# (3) IAM 역할 - EKS Node용
+resource "aws_iam_role" "eks_node" {
+  name = "${var.name}-eks-node-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      },
+      Effect = "Allow",
+      Sid    = ""
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_container_registry_read_only" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# (4) Launch Template 생성 (여기서 SG 단일화!)
 resource "aws_launch_template" "eks" {
   name_prefix   = "${var.name}-eks-node-"
   image_id      = data.aws_ami.eks_worker.id  # (위에서 조회한 최신 EKS 워커 AMI 사용)
@@ -25,14 +78,14 @@ resource "aws_launch_template" "eks" {
   vpc_security_group_ids = [var.eks_sg_id]  # 🔥 SG 외부 모듈에서 전달받음
 }
 
-# (3) EKS 클러스터 (기존과 동일, 내가 만든 SG만 할당)
+# (5) EKS 클러스터 (기존과 동일, 내가 만든 SG만 할당)
 resource "aws_eks_cluster" "this" {
   name     = "${var.name}-eks-cluster"
   role_arn = aws_iam_role.eks_cluster.arn
 
   vpc_config {
-    subnet_ids         = var.private_subnet_ids
-    security_group_ids = [var.eks_sg_id]  # ✅ 외부에서 전달
+    subnet_ids              = var.private_subnet_ids
+    security_group_ids      = [var.eks_sg_id]  # ✅ 외부에서 전달
     endpoint_private_access = true
     endpoint_public_access  = false
   }
@@ -40,10 +93,7 @@ resource "aws_eks_cluster" "this" {
   depends_on = [aws_iam_role.eks_cluster]
 }
 
-# (4) IAM 등 기타 리소스 (변경 없음, 기존대로 사용)
-# ... 중략 (생략) ...
-
-# (5) EKS Node Group (launch_template 적용)
+# (6) EKS Node Group (launch_template 적용)
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.name}-node-group"
@@ -66,6 +116,7 @@ resource "aws_eks_node_group" "this" {
   depends_on = [aws_iam_role.eks_node]
 }
 
+# (7) EKS 클러스터 이름 SSM에 저장
 resource "aws_ssm_parameter" "eks_cluster_name" {
   name  = "/mapweather/eks-cluster-name"
   type  = "String"
