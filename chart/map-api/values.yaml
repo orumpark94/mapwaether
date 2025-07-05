@@ -10,12 +10,11 @@ containerPort: 3000
 service:
   type: NodePort
   port: 80
-  nodePort: 30000  # ALB에서 이 포트를 바라보도록 Target Group 구성
+  nodePort: 3000  # ALB에서 이 포트를 바라보도록 Target Group 구성
 
 env:
   - name: AWS_REGION
     value: ap-northeast-2
   - name: KAKAO_SSM_PATH
     value: /dev/map-api/kakao-api-key
-  - name: WEATHER_SSM_PATH
-    value: /dev/map-api/openweather-api-key
+
