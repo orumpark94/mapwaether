@@ -95,17 +95,3 @@ resource "aws_ssm_parameter" "eks_cluster_name" {
   overwrite = true
 }
 
-# (6) aws-auth ConfigMap 적용 (null_resource + local-exec)
-resource "null_resource" "apply_aws_auth" {
-  depends_on = [
-    aws_eks_cluster.this,
-    aws_eks_node_group.this
-  ]
-
-  provisioner "local-exec" {
-    command = <<EOT
-    aws eks update-kubeconfig --name ${aws_eks_cluster.this.name} --region ${var.region}
-    kubectl apply -f ./modules/infra/eks/aws-auth.yaml
-    EOT
-  }
-}

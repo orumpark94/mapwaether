@@ -52,11 +52,30 @@ jobs:
           fi
 
       - name: Get EKS Cluster Name from Terraform output
+        if: ${{ github.event.inputs.action == 'apply' }}
         id: get_eks_name
         run: |
           echo "EKS_CLUSTER_NAME=$(terraform output -raw eks_cluster_name)" >> $GITHUB_ENV
 
+      - name: Wait for EKS Cluster to be ACTIVE
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          for i in {1..30}; do
+            STATUS=$(aws eks describe-cluster \
+              --region ap-northeast-2 \
+              --name ${{ env.EKS_CLUSTER_NAME }} \
+              --query "cluster.status" --output text)
+
+            echo "EKS status: $STATUS"
+            if [ "$STATUS" = "ACTIVE" ]; then
+              break
+            fi
+            echo "Waiting for EKS to become ACTIVE..."
+            sleep 10
+          done
+
       - name: Configure kubectl for EKS
+        if: ${{ github.event.inputs.action == 'apply' }}
         run: |
           aws eks update-kubeconfig \
             --region ap-northeast-2 \
