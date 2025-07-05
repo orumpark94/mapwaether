@@ -44,3 +44,9 @@ module "eks" {
   node_max_size      = 3
   node_min_size      = 1
 }
+
+module "security" {
+  source = "./modules/security"
+  name   = var.name
+  vpc_id = module.vpc.vpc_id
+}

@@ -32,7 +32,7 @@ resource "aws_subnet" "private" {
 # NAT Gateway (각 AZ별로 1개씩 권장)
 resource "aws_eip" "nat" {
   count = length(var.public_subnet_cidrs)
-  vpc   = true
+  domain = "vpc"
   tags = { Name = "${var.name}-nat-eip-${count.index}" }
 }
 
