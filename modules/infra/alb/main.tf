@@ -19,7 +19,7 @@ resource "aws_lb_target_group" "map" {
   health_check {
     enabled             = true
     path                = "/"
-    port                = "3000"
+    port                = "30000"
     protocol            = "HTTP"
     interval            = 30
     timeout             = 5
