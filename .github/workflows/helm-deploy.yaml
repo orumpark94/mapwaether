@@ -57,4 +57,3 @@ jobs:
         run: |
           helm upgrade --install ${{ github.event.inputs.app }} ./Charts/${{ github.event.inputs.app }} \
             --namespace default \
-            
