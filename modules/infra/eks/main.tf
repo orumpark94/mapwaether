@@ -111,7 +111,7 @@ resource "aws_eks_node_group" "this" {
     version = "$Latest"
   }
 
-  ami_type = "AL2_x86_64"
+  ami_type = "CUSTOM"
 
   depends_on = [aws_iam_role.eks_node]
 }
