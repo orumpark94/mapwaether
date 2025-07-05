@@ -2,21 +2,8 @@ provider "aws" {
   region = var.region
 }
 
-# (1) EKS 전용 최신 AMI 조회 (data 소스)
-data "aws_ami" "eks_worker" {
-  most_recent = true
-  owners      = ["602401143452"] # Amazon EKS 공식 계정
-
-  filter {
-    name   = "name"
-    values = ["amazon-eks-node-*"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
+# (1) EKS 전용 최신 AMI 조회 (삭제 가능, 사용하지 않음)
+# → 삭제 또는 주석 처리 가능 (선택사항)
 
 # (2) IAM 역할 - EKS 클러스터용
 resource "aws_iam_role" "eks_cluster" {
@@ -70,24 +57,7 @@ resource "aws_iam_role_policy_attachment" "ec2_container_registry_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# ✅ (3-1) 추가: IAM 인스턴스 프로파일 생성
-resource "aws_iam_instance_profile" "eks_node_profile" {
-  name = "${var.name}-eks-node-profile"
-  role = aws_iam_role.eks_node.name
-}
-
-# (4) Launch Template 생성
-resource "aws_launch_template" "eks" {
-  name_prefix   = "${var.name}-eks-node-"
-  image_id      = data.aws_ami.eks_worker.id
-  instance_type = var.node_instance_type
-  vpc_security_group_ids = [var.eks_sg_id]
-
-  # ✅ 추가: IAM 인스턴스 프로파일 연결
-  iam_instance_profile {
-    name = aws_iam_instance_profile.eks_node_profile.name
-  }
-}
+# (4) Launch Template 제거됨 ✅
 
 # (5) EKS 클러스터 생성
 resource "aws_eks_cluster" "this" {
@@ -104,7 +74,7 @@ resource "aws_eks_cluster" "this" {
   depends_on = [aws_iam_role.eks_cluster]
 }
 
-# (6) EKS Node Group 생성
+# (6) EKS Node Group 생성 (✅ 간단 버전)
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.name}-node-group"
@@ -117,12 +87,7 @@ resource "aws_eks_node_group" "this" {
     min_size     = var.node_min_size
   }
 
-  launch_template {
-    id      = aws_launch_template.eks.id
-    version = "$Latest"
-  }
-
-  ami_type = "CUSTOM"
+  instance_types = [var.node_instance_type] # ← 변경된 부분
 
   depends_on = [aws_iam_role.eks_node]
 }
@@ -132,6 +97,7 @@ resource "aws_ssm_parameter" "eks_cluster_name" {
   name  = "/mapweather/eks-cluster-name"
   type  = "String"
   value = aws_eks_cluster.this.name
+  overwrite = true
 }
 
 # (8) aws-auth ConfigMap 적용
@@ -170,7 +136,6 @@ resource "kubernetes_config_map" "aws_auth" {
 
   depends_on = [
     aws_eks_cluster.this,
-    aws_eks_node_group.this,
-    aws_launch_template.eks
+    aws_eks_node_group.this
   ]
 }

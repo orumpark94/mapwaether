@@ -35,7 +35,7 @@ resource "aws_security_group" "eks" {
     self      = true
   }
 
-  # Kubelet TLS 및 노드 상태 통신
+  # Kubelet TLS 및 노드 상태 통신 (Node 내부용)
   ingress {
     from_port = 443
     to_port   = 443
@@ -50,6 +50,23 @@ resource "aws_security_group" "eks" {
     self      = true
   }
 
+  # ✅ [변경된 부분] EKS Control Plane CIDR 대역 허용 (서울 리전 기준)
+  ingress {
+    description = "Allow EKS Control Plane (Kubelet TLS)"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = ["13.124.0.0/16", "3.35.0.0/16"]
+  }
+
+  ingress {
+    description = "Allow EKS Control Plane (API Server)"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["13.124.0.0/16", "3.35.0.0/16"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -59,44 +76,6 @@ resource "aws_security_group" "eks" {
 
   tags = {
     Name      = "${var.name}-eks-sg"
-    Project   = var.name
-    ManagedBy = "Terraform"
-  }
-}
-
-# ALB용 SG
-resource "aws_security_group" "alb" {
-  name        = "${var.name}-alb-sg"
-  description = "Security Group for ALB (map-api only)"
-  vpc_id      = var.vpc_id
-
-  # 외부에서 ALB로 접근하는 HTTP (80)
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # 외부에서 ALB로 접근하는 HTTPS (443)
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # ALB → EKS로 나가는 트래픽은 EKS SG에서 허용하면 됨
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name      = "${var.name}-alb-sg"
     Project   = var.name
     ManagedBy = "Terraform"
   }
