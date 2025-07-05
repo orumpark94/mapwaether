@@ -5,12 +5,9 @@ function App() {
   const [marker, setMarker] = useState(null);
   const [weather, setWeather] = useState(null);
 
-  const defaultLat = 37.5665;
-  const defaultLng = 126.9780;
-
   useEffect(() => {
-    // 백엔드에서 Kakao Map HTML을 렌더링한 결과를 받아와서 삽입
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/map`)  // ALB → map-api
+    // ALB → map-api → Kakao Map HTML 렌더링 반환
+    fetch(`${process.env.REACT_APP_ALB_URL}/map`)
       .then((res) => res.text())
       .then((html) => {
         if (mapRef.current) {
@@ -24,11 +21,11 @@ function App() {
       });
   }, []);
 
-  // 지도 클릭 시 백엔드에 날씨 요청
+  // 지도 클릭 시: ALB → map-api → weather-api
   const onMapClick = (lat, lon) => {
     setMarker({ lat, lon });
 
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/weather?lat=${lat}&lon=${lon}`)
+    fetch(`${process.env.REACT_APP_ALB_URL}/weather?lat=${lat}&lon=${lon}`)
       .then((res) => res.json())
       .then((data) => setWeather(data))
       .catch(() =>
@@ -54,15 +51,9 @@ function App() {
               <div style={{ color: "red" }}>{weather.error}</div>
             ) : (
               <>
-                <div>
-                  <b>날씨:</b> {weather.weather?.[0]?.description ?? "N/A"}
-                </div>
-                <div>
-                  <b>온도:</b> {weather.main?.temp ?? "N/A"} ℃
-                </div>
-                <div>
-                  <b>습도:</b> {weather.main?.humidity ?? "N/A"} %
-                </div>
+                <div><b>날씨:</b> {weather.weather?.[0]?.description ?? "N/A"}</div>
+                <div><b>온도:</b> {weather.main?.temp ?? "N/A"} ℃</div>
+                <div><b>습도:</b> {weather.main?.humidity ?? "N/A"} %</div>
               </>
             )}
           </div>
