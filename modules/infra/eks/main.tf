@@ -122,3 +122,40 @@ resource "aws_ssm_parameter" "eks_cluster_name" {
   type  = "String"
   value = aws_eks_cluster.this.name
 }
+
+# (8) aws-auth ConfigMap 적용을 위한 로컬 exec
+data "aws_eks_cluster" "this" {
+  name = aws_eks_cluster.this.name
+}
+
+data "aws_eks_cluster_auth" "this" {
+  name = aws_eks_cluster.this.name
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.this.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.this.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.this.token
+}
+
+resource "kubernetes_config_map" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = [
+          "system:bootstrappers",
+          "system:nodes"
+        ]
+      }
+    ])
+  }
+
+  depends_on = [aws_eks_node_group.this]
+}
