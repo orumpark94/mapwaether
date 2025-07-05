@@ -55,6 +55,6 @@ jobs:
 
       - name: Deploy with Helm
         run: |
-          helm upgrade --install ${{ github.event.inputs.app }} ./chart/${{ github.event.inputs.app }} \
+          helm upgrade --install ${{ github.event.inputs.app }} ./Charts/${{ github.event.inputs.app }} \
             --namespace default \
             
