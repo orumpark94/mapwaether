@@ -86,3 +86,7 @@ jobs:
           aws eks update-kubeconfig \
             --region ap-northeast-2 \
             --name ${{ env.EKS_CLUSTER_NAME }}
+      - name: apply aws-auth configmap
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          kubectl apply -f modules/infra/eks/aws-auth.yaml
