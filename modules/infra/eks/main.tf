@@ -141,11 +141,10 @@ resource "aws_ssm_parameter" "eks_cluster_name" {
   overwrite = true
 }
 
-# (6) SA 리소스 적용
 resource "null_resource" "create_sa" {
   provisioner "local-exec" {
     command = "kubectl apply -f ${path.module}/map-api-sa.yaml"
   }
 
-  depends_on = [module.eks]
+  depends_on = [aws_eks_cluster.this, aws_eks_node_group.this]  # ✅ 올바르게 리소스를 직접 참조
 }
