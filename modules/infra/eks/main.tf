@@ -54,10 +54,10 @@ resource "aws_iam_role_policy_attachment" "ec2_container_registry_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# ✅ (2.5) EKS Node용 AMI 조회
+# (2.5) EKS Node용 AMI 조회
 data "aws_ami" "eks_worker" {
   most_recent = true
-  owners      = ["602401143452"] # EKS 공식 계정
+  owners      = ["602401143452"]
 
   filter {
     name   = "name"
@@ -70,14 +70,14 @@ data "aws_ami" "eks_worker" {
   }
 }
 
-# ✅ (2.6) Launch Template 생성 - 명시적으로 SG 연결
+# (2.6) Launch Template 생성
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.name}-lt-"
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.node_instance_type
 
   network_interfaces {
-    security_groups = [var.eks_sg_id]     # ✅ 네가 만든 eks-sg 명시
+    security_groups             = [var.eks_sg_id]
     associate_public_ip_address = false
   }
 
@@ -93,7 +93,7 @@ resource "aws_launch_template" "eks_nodes" {
   }
 }
 
-# (3) EKS 클러스터 생성
+# (3) EKS 클러스터 생성 (💡 NodeGroup과 LaunchTemplate에 종속 추가)
 resource "aws_eks_cluster" "this" {
   name     = "${var.name}-eks-cluster"
   role_arn = aws_iam_role.eks_cluster.arn
@@ -105,7 +105,11 @@ resource "aws_eks_cluster" "this" {
     endpoint_public_access  = true
   }
 
-  depends_on = [aws_iam_role.eks_cluster]
+  depends_on = [
+    aws_iam_role.eks_cluster,
+    aws_eks_node_group.this,         # ✅ NodeGroup 삭제 후 클러스터 삭제
+    aws_launch_template.eks_nodes    # ✅ LaunchTemplate도 NodeGroup 이후 삭제
+  ]
 }
 
 # (4) EKS Node Group 생성
@@ -121,13 +125,11 @@ resource "aws_eks_node_group" "this" {
     min_size     = var.node_min_size
   }
 
-  # ✅ Launch Template 사용
   launch_template {
     id      = aws_launch_template.eks_nodes.id
     version = "$Latest"
   }
 
-  # ✅ instance_types 대신 capacity_type 사용
   capacity_type = "ON_DEMAND"
 
   depends_on = [aws_iam_role.eks_node]
@@ -135,16 +137,26 @@ resource "aws_eks_node_group" "this" {
 
 # (5) 클러스터 이름 SSM에 저장
 resource "aws_ssm_parameter" "eks_cluster_name" {
-  name  = "/mapweather/eks-cluster-name"
-  type  = "String"
-  value = aws_eks_cluster.this.name
+  name      = "/mapweather/eks-cluster-name"
+  type      = "String"
+  value     = aws_eks_cluster.this.name
   overwrite = true
 }
 
+# (6) ServiceAccount 적용
 resource "null_resource" "create_sa" {
   provisioner "local-exec" {
     command = "kubectl apply -f ${path.module}/map-api-sa.yaml"
   }
 
-  depends_on = [aws_eks_cluster.this, aws_eks_node_group.this]  # ✅ 올바르게 리소스를 직접 참조
+  depends_on = [aws_eks_cluster.this, aws_eks_node_group.this]
+}
+
+# (7) aws-auth ConfigMap 적용
+resource "null_resource" "apply_aws_auth" {
+  provisioner "local-exec" {
+    command = "kubectl apply -f ${path.module}/aws-auth.yaml"
+  }
+
+  depends_on = [aws_eks_node_group.this]
 }
