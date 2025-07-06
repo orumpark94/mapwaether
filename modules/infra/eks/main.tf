@@ -61,7 +61,7 @@ data "aws_ami" "eks_worker" {
 
   filter {
     name   = "name"
-    values = ["amazon-eks-node-*"]
+    values = ["amazon-eks-node-1.28-v*"]
   }
 
   filter {
@@ -86,11 +86,11 @@ resource "aws_launch_template" "eks_nodes" {
     name = aws_iam_instance_profile.eks_node.name
   }
 
-user_data = base64encode(<<-EOF
-  #!/bin/bash
-  /etc/eks/bootstrap.sh ${aws_eks_cluster.this.name} \
-    --apiserver-endpoint '${aws_eks_cluster.this.endpoint}' \
-    --b64-cluster-ca '${aws_eks_cluster.this.certificate_authority[0].data}'
+user_data = base64encode(<<EOF
+#!/bin/bash
+/etc/eks/bootstrap.sh mapweather-eks-cluster \
+  --apiserver-endpoint ${aws_eks_cluster.this.endpoint} \
+  --b64-cluster-ca ${aws_eks_cluster.this.certificate_authority[0].data}
 EOF
 )
 
@@ -191,4 +191,14 @@ resource "null_resource" "wait_for_nodes" {
   triggers = {
     always_run = timestamp()
   }
+}
+
+resource "aws_security_group_rule" "allow_eks_autogen_sg_to_custom_sg" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 65535
+  protocol                 = "-1"
+  security_group_id        = aws_security_group.eks.id             # 너가 만든 SG
+  source_security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id  # 자동 생성된 SG
+  description              = "Allow traffic from EKS cluster SG"
 }
