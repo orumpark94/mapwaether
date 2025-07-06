@@ -51,11 +51,11 @@ jobs:
             exit 1
           fi
 
-      - name: Get EKS Cluster Name from Terraform output
+      - name: Get Terraform Outputs
         if: ${{ github.event.inputs.action == 'apply' }}
-        id: get_eks_name
         run: |
           echo "EKS_CLUSTER_NAME=$(terraform output -raw eks_cluster_name)" >> $GITHUB_ENV
+          echo "NODE_ROLE_ARN=$(terraform output -raw node_role_arn)" >> $GITHUB_ENV
 
       - name: Wait for EKS Cluster to be ACTIVE
         if: ${{ github.event.inputs.action == 'apply' }}
@@ -74,11 +74,11 @@ jobs:
             sleep 10
           done
 
-      - name: Install kubectl                # ✅ 변경됨: 명시적으로 kubectl 설치
+      - name: Install kubectl
         if: ${{ github.event.inputs.action == 'apply' }}
-        uses: azure/setup-kubectl@v3  # ✅ 변경됨: AWS 공식 액션으로 변경
+        uses: azure/setup-kubectl@v3
         with:
-          version: "v1.28.0"        # ✅ 변경됨: 버전은 클러스터에 맞게 설정
+          version: "v1.28.0"
 
       - name: Configure kubectl for EKS
         if: ${{ github.event.inputs.action == 'apply' }}
@@ -86,7 +86,23 @@ jobs:
           aws eks update-kubeconfig \
             --region ap-northeast-2 \
             --name ${{ env.EKS_CLUSTER_NAME }}
-      - name: apply aws-auth configmap
+
+      - name: Apply aws-auth ConfigMap dynamically
         if: ${{ github.event.inputs.action == 'apply' }}
         run: |
-          kubectl apply -f modules/infra/eks/aws-auth.yaml
+          cat <<EOF > aws-auth.yaml
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: aws-auth
+            namespace: kube-system
+          data:
+            mapRoles: |
+              - rolearn: ${{ env.NODE_ROLE_ARN }}
+                username: system:node:{{EC2PrivateDNSName}}
+                groups:
+                  - system:bootstrappers
+                  - system:nodes
+          EOF
+
+          kubectl apply -f aws-auth.yaml

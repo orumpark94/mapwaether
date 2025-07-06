@@ -173,15 +173,3 @@ resource "null_resource" "wait_for_nodes" {
     always_run = timestamp()
   }
 }
-
-resource "null_resource" "apply_aws_auth" {
-  provisioner "local-exec" {
-    command = "kubectl apply -f ${path.module}/aws-auth.yaml"
-  }
-
-  depends_on = [null_resource.wait_for_nodes]
-
-  triggers = {
-    always_run = timestamp()
-  }
-}
