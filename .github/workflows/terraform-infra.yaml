@@ -49,6 +49,7 @@ jobs:
           else
             echo "Invalid action input. Use apply or destroy."
             exit 1
+          fi
 
       - name: Get EKS Cluster Name from Terraform output
         if: ${{ github.event.inputs.action == 'apply' }}
