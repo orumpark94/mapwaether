@@ -43,6 +43,7 @@ module "eks" {
   node_desired_size  = 2
   node_max_size      = 3
   node_min_size      = 1
+  cluster_name       = "mapweather-eks-cluster"       # EKS 클러스터 이름
 }
 
 module "security" {
