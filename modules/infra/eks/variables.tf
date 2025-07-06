@@ -43,9 +43,5 @@ variable "cluster_name" {
   type        = string
 }
 
-# outputs.tf
-output "eks_cluster_name" {
-  value = aws_eks_cluster.this.name
-}
 
 
