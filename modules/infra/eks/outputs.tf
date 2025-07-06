@@ -20,6 +20,6 @@ output "eks_sg_id" {
 }
 
 output "map_api_irsa_role_arn" {
-  description = "IRSA Role ARN for map-api ServiceAccount"
-  value       = aws_iam_role.map_api_irsa.arn
+  value = data.aws_iam_role.map_api_irsa.arn
 }
+

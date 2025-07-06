@@ -4,4 +4,4 @@ metadata:
   name: map-api-sa
   namespace: default
   annotations:
-    eks.amazonaws.com/role-arn: {{ IRSA_ROLE_ARN_HERE }}
+    eks.amazonaws.com/role-arn: arn:aws:iam::863676520919:role/mapweather-map-api-irsa-role
