@@ -1,5 +1,6 @@
 data "aws_eks_cluster" "this" {
-  name = var.cluster_name
+  name       = var.cluster_name
+  depends_on = [aws_eks_cluster.this] # ✅ 클러스터 생성 이후에만 실행되도록 추가
 }
 
 data "aws_eks_cluster_auth" "this" {
