@@ -93,12 +93,7 @@ resource "aws_launch_template" "eks_nodes" {
   }
 }
 
-# ✅ 삭제 순서 강제용 null_resource (NodeGroup → Cluster)
-resource "null_resource" "delete_order_block" {
-  depends_on = [aws_eks_node_group.this]
-}
-
-# (3) EKS 클러스터 생성
+# (3) EKS 클러스터 생성 (기본 depends_on만 유지)
 resource "aws_eks_cluster" "this" {
   name     = "${var.name}-eks-cluster"
   role_arn = aws_iam_role.eks_cluster.arn
@@ -112,8 +107,7 @@ resource "aws_eks_cluster" "this" {
 
   depends_on = [
     aws_iam_role.eks_cluster,
-    aws_launch_template.eks_nodes,
-    null_resource.delete_order_block  # ✅ 삭제 시 NodeGroup보다 늦게 삭제됨
+    aws_launch_template.eks_nodes
   ]
 }
 
