@@ -23,6 +23,12 @@ module "vpc" {
   availability_zones   = ["ap-northeast-2a", "ap-northeast-2c"]
 }
 
+module "security" {
+  source = "./modules/infra/security"
+  name   = var.name
+  vpc_id = module.vpc.vpc_id
+}
+
 module "alb" {
   source             = "./modules/infra/alb"
   name               = "mapweather"
@@ -44,10 +50,4 @@ module "eks" {
   node_max_size      = 3
   node_min_size      = 1
   cluster_name       = "mapweather-eks-cluster"       # EKS 클러스터 이름
-}
-
-module "security" {
-  source = "./modules/infra/security"
-  name   = var.name
-  vpc_id = module.vpc.vpc_id
 }

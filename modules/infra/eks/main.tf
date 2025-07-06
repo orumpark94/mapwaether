@@ -70,11 +70,30 @@ data "aws_ami" "eks_worker" {
   }
 }
 
+resource "aws_iam_instance_profile" "eks_node" {
+  name = "${var.name}-eks-node-profile"
+  role = aws_iam_role.eks_node.name
+}
+
+
 # (2.6) Launch Template 생성
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.name}-lt-"
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.node_instance_type
+   
+  iam_instance_profile {
+    name = aws_iam_instance_profile.eks_node.name
+  }
+
+user_data = base64encode(<<-EOF
+  #!/bin/bash
+  /etc/eks/bootstrap.sh ${aws_eks_cluster.this.name} \
+    --apiserver-endpoint '${aws_eks_cluster.this.endpoint}' \
+    --b64-cluster-ca '${aws_eks_cluster.this.certificate_authority[0].data}'
+EOF
+)
+
 
   network_interfaces {
     security_groups             = [var.eks_sg_id]
@@ -115,8 +134,8 @@ resource "aws_eks_cluster" "this" {
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.name}-node-group"
-  node_role_arn   = aws_iam_role.eks_node.arn
   subnet_ids      = var.private_subnet_ids
+  node_role_arn = aws_iam_role.eks_node.arn
 
   scaling_config {
     desired_size = var.node_desired_size
@@ -126,7 +145,7 @@ resource "aws_eks_node_group" "this" {
 
   launch_template {
     id      = aws_launch_template.eks_nodes.id
-    version = "$Latest"
+    version = aws_launch_template.eks_nodes.latest_version
   }
 
   capacity_type = "ON_DEMAND"
