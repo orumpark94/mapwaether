@@ -37,4 +37,15 @@ variable "node_min_size" {
   default     = 1
 }
 
+# variables.tf
+variable "cluster_name" {
+  description = "EKS 클러스터 이름"
+  type        = string
+}
+
+# outputs.tf
+output "eks_cluster_name" {
+  value = aws_eks_cluster.this.name
+}
+
 

@@ -18,3 +18,8 @@ output "eks_sg_id" {
   description = "EKS 클러스터 및 노드에 할당된 보안 그룹 ID"
   value       = var.eks_sg_id
 }
+
+output "map_api_irsa_role_arn" {
+  description = "IRSA Role ARN for map-api ServiceAccount"
+  value       = aws_iam_role.map_api_irsa.arn
+}
