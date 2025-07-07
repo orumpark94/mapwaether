@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: map-api
 spec:
-  type: {{ .Values.service.type }}
+  type: NodePort
   selector:
     app: map-api
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.containerPort }}
-      nodePort: {{ .Values.service.nodePort }}
+    - port: 80
+      targetPort: 3000
+      nodePort: 30000
