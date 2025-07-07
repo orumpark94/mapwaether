@@ -2,6 +2,14 @@ provider "aws" {
   region = var.region
 }
 
+# (0) 클러스터 정보를 읽기 위한 data 리소스 추가
+data "aws_eks_cluster" "this" {
+  name = "${var.name}-eks-cluster"
+
+  depends_on = [aws_eks_cluster.this] # 클러스터 생성 이후에 조회하도록 명시
+}
+
+
 # (1) EKS 클러스터용 IAM 역할
 resource "aws_iam_role" "eks_cluster" {
   name = "${var.name}-eks-cluster-role"
@@ -88,8 +96,8 @@ resource "aws_launch_template" "eks_nodes" {
 
 user_data = base64encode(<<EOF
 #!/bin/bash
-/etc/eks/bootstrap.sh mapweather-eks-cluster \
-  --apiserver-endpoint ${aws_eks_cluster.this.endpoint} \
+/etc/eks/bootstrap.sh ${data.aws_eks_cluster.this.name} \
+  --apiserver-endpoint ${data.aws_eks_cluster.this.endpoint} \
   --b64-cluster-ca ${aws_eks_cluster.this.certificate_authority[0].data}
 EOF
 )
@@ -125,8 +133,7 @@ resource "aws_eks_cluster" "this" {
   }
 
   depends_on = [
-    aws_iam_role.eks_cluster,
-    aws_launch_template.eks_nodes
+    aws_iam_role.eks_cluster
   ]
 }
 
