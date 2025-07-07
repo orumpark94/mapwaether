@@ -122,9 +122,10 @@ jobs:
           echo "    - userarn: arn:aws:iam::863676520919:user/mapweather" >> aws-auth.yaml
           echo "      username: mapweather" >> aws-auth.yaml
           echo "      groups:" >> aws-auth.yaml
+          echo '        - "system:masters"' >> aws-auth.yaml
           echo "    - userarn: arn:aws:iam::863676520919:root" >> aws-auth.yaml
           echo "      username: root" >> aws-auth.yaml
           echo "      groups:" >> aws-auth.yaml          
-          echo "        - \"system:masters\"" >> aws-auth.yaml
+          echo '        - "system:masters"' >> aws-auth.yaml
 
           kubectl apply -f aws-auth.yaml || exit 1
