@@ -12,7 +12,7 @@ spec:
       labels:
         app: map-api
     spec:
-      serviceAccountName: {{ .Values.serviceAccount.name }}   # ✅ 여기에 추가!
+      serviceAccountName: map-api-sa
       containers:
         - name: map-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

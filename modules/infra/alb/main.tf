@@ -9,7 +9,7 @@ resource "aws_lb" "this" {
   tags = { Name = "${var.name}-alb" }
 }
 
-# Map API Target Group (port 3000)
+# Map API Target Group (port 30000)
 resource "aws_lb_target_group" "map" {
   name     = "${var.name}-map-tg"
   port     = 30000

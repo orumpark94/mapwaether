@@ -18,7 +18,5 @@ env:
   - name: KAKAO_SSM_PATH
     value: /dev/map-api/kakao-api-key
 
-# 🔽 여기 추가!
 serviceAccount:
-  create: false        # Helm이 SA를 생성하지 않도록 설정
-  name: map-api-sa     # Terraform으로 만든 ServiceAccount를 사용
+  name: map-api-sa
