@@ -98,7 +98,7 @@ user_data = base64encode(<<EOF
 #!/bin/bash
 /etc/eks/bootstrap.sh ${data.aws_eks_cluster.this.name} \
   --apiserver-endpoint ${data.aws_eks_cluster.this.endpoint} \
-  --b64-cluster-ca ${aws_eks_cluster.this.certificate_authority[0].data}
+  --b64-cluster-ca ${data.aws_eks_cluster.this.certificate_authority[0].data}
 EOF
 )
 
