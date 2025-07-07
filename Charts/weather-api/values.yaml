@@ -16,3 +16,6 @@ env:
     value: ap-northeast-2
   - name: WEATHER_PARAM_NAME
     value: /dev/weather-api/openweather-api-key
+
+serviceAccount:
+  name: weather-api-sa

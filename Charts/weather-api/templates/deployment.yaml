@@ -12,6 +12,7 @@ spec:
       labels:
         app: weather-api
     spec:
+      serviceAccountName: weather-api-sa
       containers:
         - name: weather-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
