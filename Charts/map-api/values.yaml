@@ -17,6 +17,7 @@ env:
     value: ap-northeast-2
   - name: KAKAO_SSM_PATH
     value: /dev/map-api/kakao-api-key
+    
 
 serviceAccount:
   name: map-api-sa

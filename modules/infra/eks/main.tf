@@ -62,6 +62,11 @@ resource "aws_iam_role_policy_attachment" "ec2_container_registry_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+resource "aws_iam_role_policy_attachment" "ssm_managed_policy" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 # (2.5) EKS Node용 AMI 조회
 data "aws_ami" "eks_worker" {
   most_recent = true
@@ -96,6 +101,10 @@ user_data = base64encode(<<EOF
 /etc/eks/bootstrap.sh ${data.aws_eks_cluster.this.name} \
   --apiserver-endpoint ${data.aws_eks_cluster.this.endpoint} \
   --b64-cluster-ca ${data.aws_eks_cluster.this.certificate_authority[0].data}
+
+# SSM Agent 재시작 (필수!)
+systemctl restart amazon-ssm-agent
+
 EOF
 )
 
