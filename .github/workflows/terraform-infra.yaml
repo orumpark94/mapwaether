@@ -73,6 +73,22 @@ jobs:
             echo "Waiting for EKS to become ACTIVE..."
             sleep 10
           done
+        
+      - name: Install eksctl
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+
+
+      - name: Associate OIDC Provider (for IRSA)
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          eksctl utils associate-iam-oidc-provider \
+            --region ap-northeast-2 \
+            --cluster ${{ env.EKS_CLUSTER_NAME }} \
+            --approve
+
 
       - name: Install kubectl
         if: ${{ github.event.inputs.action == 'apply' }}
