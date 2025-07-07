@@ -90,24 +90,22 @@ jobs:
       - name: Apply aws-auth ConfigMap dynamically
         if: ${{ github.event.inputs.action == 'apply' }}
         run: |
-          cat <<EOF > aws-auth.yaml
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: aws-auth
-            namespace: kube-system
-          data:
-            mapRoles: |
-              - rolearn: ${{ env.NODE_ROLE_ARN }}
-                username: system:node:{{EC2PrivateDNSName}}
-                groups:
-                  - system:bootstrappers
-                  - system:nodes
-            mapUsers: |
-              - userarn: arn:aws:iam::863676520919:user/mapweather
-                username: mapweather
-                groups:
-                  - system:masters
-          EOF
+          echo "apiVersion: v1" > aws-auth.yaml
+          echo "kind: ConfigMap" >> aws-auth.yaml
+          echo "metadata:" >> aws-auth.yaml
+          echo "  name: aws-auth" >> aws-auth.yaml
+          echo "  namespace: kube-system" >> aws-auth.yaml
+          echo "data:" >> aws-auth.yaml
+          echo "  mapRoles: |" >> aws-auth.yaml
+          echo "    - rolearn: ${{ env.NODE_ROLE_ARN }}" >> aws-auth.yaml
+          echo "      username: system:node:{{EC2PrivateDNSName}}" >> aws-auth.yaml
+          echo "      groups:" >> aws-auth.yaml
+          echo "        - system:bootstrappers" >> aws-auth.yaml
+          echo "        - system:nodes" >> aws-auth.yaml
+          echo "  mapUsers: |" >> aws-auth.yaml
+          echo "    - userarn: arn:aws:iam::863676520919:user/mapweather" >> aws-auth.yaml
+          echo "      username: mapweather" >> aws-auth.yaml
+          echo "      groups:" >> aws-auth.yaml
+          echo "        - \"system:masters\"" >> aws-auth.yaml
 
-          kubectl apply -f aws-auth.yaml
+          kubectl apply -f aws-auth.yaml || exit 1

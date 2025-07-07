@@ -90,9 +90,6 @@ resource "aws_launch_template" "eks_nodes" {
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.node_instance_type
    
-  iam_instance_profile {
-    name = aws_iam_instance_profile.eks_node.name
-  }
 
 user_data = base64encode(<<EOF
 #!/bin/bash
@@ -101,7 +98,6 @@ user_data = base64encode(<<EOF
   --b64-cluster-ca ${data.aws_eks_cluster.this.certificate_authority[0].data}
 EOF
 )
-
 
   network_interfaces {
     security_groups             = [var.eks_sg_id]
