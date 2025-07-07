@@ -164,28 +164,3 @@ resource "aws_ssm_parameter" "eks_cluster_name" {
   overwrite = true
 }
 
-
-resource "null_resource" "wait_for_nodes" {
-  provisioner "local-exec" {
-    command = <<EOT
-  echo "⏳ 노드가 클러스터에 조인될 때까지 대기..."
-  for i in $(seq 1 12); do
-    READY_NODES=$(kubectl get nodes --no-headers 2>/dev/null | grep -c ' Ready')
-    if [ "$READY_NODES" -ge 1 ]; then
-      echo "✅ 최소 1개 노드가 준비됨"
-      break
-    fi
-    echo "🕐 아직 준비되지 않음, 10초 대기..."
-    sleep 10
-  done
-EOT
-
-  }
-
-  depends_on = [aws_eks_node_group.this]
-
-  triggers = {
-    always_run = timestamp()
-  }
-}
-
