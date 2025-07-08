@@ -21,3 +21,5 @@ env:
 
 serviceAccount:
   name: map-api-sa
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # Helm deploy 시 GitHub Actions에서 채움
