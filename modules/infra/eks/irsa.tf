@@ -1,14 +1,40 @@
-############################################
-# IRSA: 기존 IAM Role을 참조해서 정책만 연결
-############################################
-
-# 1. 이미 존재하는 IRSA IAM Role을 참조
-data "aws_iam_role" "map_api_irsa" {
-  name = "${var.name}-map-api-irsa-role"
+data "aws_eks_cluster" "this" {
+  name = "${var.name}-eks-cluster"
 }
 
-# 2. AmazonSSMReadOnlyAccess 정책을 해당 Role에 연결
-resource "aws_iam_role_policy_attachment" "map_api_irsa_ssm" {
-  role       = data.aws_iam_role.map_api_irsa.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+data "aws_iam_openid_connect_provider" "this" {
+  url = data.aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
+
+resource "null_resource" "update_irsa_trust_policy" {
+  provisioner "local-exec" {
+    command = <<EOT
+aws iam update-assume-role-policy \
+  --role-name mapweather-map-api-irsa-role \
+  --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Federated": "${data.aws_iam_openid_connect_provider.this.arn}"
+        },
+        "Action": "sts:AssumeRoleWithWebIdentity",
+        "Condition": {
+          "StringEquals": {
+            "${replace(data.aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:sub": "system:serviceaccount:default:map-api-sa"
+          }
+        }
+      }
+    ]
+  }'
+EOT
+  }
+
+  triggers = {
+    oidc = data.aws_iam_openid_connect_provider.this.arn
+  }
+
+  depends_on = [data.aws_eks_cluster.this]
+}
+
