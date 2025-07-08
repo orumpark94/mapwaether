@@ -104,6 +104,11 @@ user_data = base64encode(<<EOF
 
 # SSM Agent 재시작 (필수!)
 systemctl restart amazon-ssm-agent
+# kubectl 설치 (버전은 클러스터에 맞게 1.28.2로 지정)
+curl -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.28.2/2023-10-13/bin/linux/amd64/kubectl
+chmod +x /usr/local/bin/kubectl
+# PATH에 등록되어 있을 가능성이 높지만, 명시적으로도 추가
+echo 'export PATH=$PATH:/usr/local/bin' >> /etc/profile
 
 EOF
 )
