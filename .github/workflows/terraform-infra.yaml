@@ -163,3 +163,23 @@ jobs:
             }
           }'
           echo "✅ CoreDNS 분산 배포 설정 완료됨."
+      # ✅ CoreDNS 전체 로그 수집
+      - name: Collect CoreDNS Logs
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          echo "📦 CoreDNS 로그 수집 시작..."
+          mkdir -p logs
+          for pod in $(kubectl get pods -n kube-system -l k8s-app=kube-dns -o jsonpath="{.items[*].metadata.name}"); do
+            echo "🔍 $pod 로그 수집 중..."
+            kubectl logs -n kube-system $pod > logs/${pod}_current.log || echo "⚠️ 현재 로그 수집 실패"
+            kubectl logs -n kube-system $pod --previous > logs/${pod}_previous.log || echo "⚠️ 이전 로그 없음 (Crash 없었을 가능성)"
+          done
+          echo "✅ 로그 수집 완료"
+
+      # ✅ GitHub Actions Artifacts로 로그 업로드
+      - name: Upload CoreDNS Logs to Artifacts
+        if: ${{ github.event.inputs.action == 'apply' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coredns-logs
+          path: logs/
