@@ -1,4 +1,4 @@
-name: Deploy to EKS with Helm
+name: Deploy with IRSA + Helm
 
 on:
   workflow_dispatch:
@@ -18,6 +18,8 @@ jobs:
 
     env:
       AWS_REGION: ap-northeast-2
+      ROLE_NAME: mapweather-map-api-irsa-role
+      SERVICE_ACCOUNT_SUBJECT: system:serviceaccount:default:map-api-sa
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
@@ -31,6 +33,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # 1️⃣ SSM에서 클러스터 이름 로딩
       - name: Load EKS Cluster Name from SSM
         id: get-cluster-name
         run: |
@@ -39,21 +42,55 @@ jobs:
             --region $AWS_REGION \
             --query "Parameter.Value" \
             --output text)
-          echo "✅ 클러스터 이름 불러옴: $CLUSTER_NAME"
           echo "EKS_CLUSTER=$CLUSTER_NAME" >> $GITHUB_ENV
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
+      # 2️⃣ IRSA Trust Policy 업데이트
+      - name: Update IRSA Trust Policy
+        run: |
+          OIDC_URL=$(aws eks describe-cluster \
+            --name $EKS_CLUSTER \
+            --region $AWS_REGION \
+            --query "cluster.identity.oidc.issuer" \
+            --output text)
 
-      - name: Update kubeconfig
+          OIDC_ID=$(echo $OIDC_URL | cut -d'/' -f5)
+
+          cat > assume-policy.json <<EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::863676520919:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/$OIDC_ID"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "oidc.eks.ap-northeast-2.amazonaws.com/id/$OIDC_ID:sub": "$SERVICE_ACCOUNT_SUBJECT"
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+          aws iam update-assume-role-policy \
+            --role-name $ROLE_NAME \
+            --policy-document file://assume-policy.json
+
+      # 3️⃣ kubeconfig 설정
+      - name: Setup kubeconfig
         run: |
           aws eks update-kubeconfig \
-            --region ${{ env.AWS_REGION }} \
-            --name ${{ env.EKS_CLUSTER }}
+            --region $AWS_REGION \
+            --name $EKS_CLUSTER
 
+      # 4️⃣ Helm 설치
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      # 5️⃣ Helm 배포
       - name: Deploy with Helm
         run: |
           helm upgrade --install ${{ github.event.inputs.app }} ./Charts/${{ github.event.inputs.app }} \
