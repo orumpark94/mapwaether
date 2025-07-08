@@ -1,0 +1,68 @@
+name: Update IRSA Trust Policy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-irsa:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      CLUSTER_NAME: mapweather-eks-cluster
+      ROLE_NAME: mapweather-map-api-irsa-role
+      SERVICE_ACCOUNT_SUBJECT: system:serviceaccount:default:map-api-sa
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get OIDC issuer URL
+        id: oidc
+        run: |
+          OIDC_URL=$(aws eks describe-cluster \
+            --name $CLUSTER_NAME \
+            --region $AWS_REGION \
+            --query "cluster.identity.oidc.issuer" \
+            --output text)
+
+          OIDC_ID=$(echo $OIDC_URL | cut -d'/' -f5)
+          echo "OIDC_ID=$OIDC_ID" >> $GITHUB_ENV
+          echo "OIDC_URL=$OIDC_URL" >> $GITHUB_ENV
+
+      - name: Update IAM Role trust policy
+        run: |
+          echo '{
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::863676520919:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/'"$OIDC_ID"'"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "oidc.eks.ap-northeast-2.amazonaws.com/id/'"$OIDC_ID"':sub": "'"$SERVICE_ACCOUNT_SUBJECT"'"
+                  }
+                }
+              }
+            ]
+          }' > assume-policy.json
+
+          aws iam update-assume-role-policy \
+            --role-name $ROLE_NAME \
+            --policy-document file://assume-policy.json
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name $CLUSTER_NAME
+
+      - name: Restart map-api deployment
+        run: |
+          kubectl rollout restart deployment map-api -n default
