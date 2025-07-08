@@ -129,3 +129,37 @@ jobs:
           echo '        - "system:masters"' >> aws-auth.yaml
 
           kubectl apply -f aws-auth.yaml || exit 1
+      # ✅ CoreDNS 준비 상태 대기
+      - name: Wait for CoreDNS to be Ready
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          echo "🔎 CoreDNS 상태 확인 중..."
+          kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide
+          echo "⏳ CoreDNS Deployment 준비 상태 대기 중..."
+          kubectl rollout status deployment/coredns -n kube-system --timeout=120s
+          echo "✅ CoreDNS 준비 완료됨."
+
+      # ✅ CoreDNS 배포를 두 노드에 분산되도록 patch
+      - name: Patch CoreDNS with topologySpreadConstraints
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          echo "🔧 CoreDNS에 topologySpreadConstraints 패치 중..."
+          kubectl patch deployment coredns -n kube-system --type='merge' -p '{
+            "spec": {
+              "template": {
+                "spec": {
+                  "topologySpreadConstraints": [{
+                    "maxSkew": 1,
+                    "topologyKey": "kubernetes.io/hostname",
+                    "whenUnsatisfiable": "ScheduleAnyway",
+                    "labelSelector": {
+                      "matchLabels": {
+                        "k8s-app": "kube-dns"
+                      }
+                    }
+                  }]
+                }
+              }
+            }
+          }'
+          echo "✅ CoreDNS 분산 배포 설정 완료됨."

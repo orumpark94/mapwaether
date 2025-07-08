@@ -64,7 +64,27 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      # 5️⃣ Helm 배포
+      # 🔍 5️⃣ 노드 상태 확인
+      - name: Wait for nodes to be Ready
+        run: |
+          echo "🔎 현재 노드 상태:"
+          kubectl get nodes -o wide
+          echo "⏳ 모든 노드가 Ready 될 때까지 대기 중..."
+          kubectl wait --for=condition=Ready node --all --timeout=180s
+          echo "✅ 노드 모두 Ready 상태입니다."
+          kubectl get nodes
+
+      # 🔍 6️⃣ CoreDNS 준비 상태 확인
+      - name: Wait for CoreDNS to be Ready
+        run: |
+          echo "🔎 CoreDNS 상태 확인 중..."
+          kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide
+          echo "⏳ CoreDNS Deployment 준비 상태 대기 중..."
+          kubectl rollout status deployment/coredns -n kube-system --timeout=60s
+          echo "✅ CoreDNS 준비 완료됨."
+          kubectl get pods -n kube-system -l k8s-app=kube-dns
+
+      # 7️⃣ Helm 배포
       - name: Deploy with Helm
         run: |
           helm upgrade --install ${{ github.event.inputs.app }} ./Charts/${{ github.event.inputs.app }} \
