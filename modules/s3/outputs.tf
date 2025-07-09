@@ -5,5 +5,5 @@ output "bucket_name" {
 
 output "website_endpoint" {
   description = "S3 static website endpoint"
-  value       = aws_s3_bucket_website_configuration.this.website_endpoint
+  value       = "http://${aws_s3_bucket_website_configuration.this.website_endpoint}"
 }

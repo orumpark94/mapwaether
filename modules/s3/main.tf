@@ -53,5 +53,5 @@ data "aws_iam_policy_document" "allow_public_read" {
 resource "aws_ssm_parameter" "frontend_endpoint" {
   name           = "frontend-address"
   type           = "String"
-  insecure_value = aws_s3_bucket_website_configuration.this.website_endpoint
+  insecure_value = "http://${aws_s3_bucket_website_configuration.this.website_endpoint}"
 }
