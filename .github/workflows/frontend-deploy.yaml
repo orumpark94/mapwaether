@@ -23,12 +23,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      - name: Get Backend URL from SSM and create .env
-        env:
-          AWS_DEFAULT_REGION: ap-northeast-2
+      - name: Generate alb-config.json
         run: |
-          ALB_DNS=$(aws ssm get-parameter --name "/mapweather/alb-dns" --with-decryption --query 'Parameter.Value' --output text)
-          echo "REACT_APP_BACKEND_URL=http://$ALB_DNS/map" > ./frontend/.env
+          ALB_DNS=$(aws ssm get-parameter --name "/mapweather/alb-dns" --query 'Parameter.Value' --output text)
+          echo "{\"albUrl\": \"http://$ALB_DNS\"}" > ./frontend/build/alb-config.json
+          cat ./frontend/build/alb-config.json
 
       - name: Install dependencies
         run: npm install

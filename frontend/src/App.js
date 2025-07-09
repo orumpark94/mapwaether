@@ -4,33 +4,60 @@ function App() {
   const mapRef = useRef(null);
   const [marker, setMarker] = useState(null);
   const [weather, setWeather] = useState(null);
+  const [backendUrl, setBackendUrl] = useState("");
 
+  // ✅ alb-config.json에서 ALB 주소 동적 로딩
   useEffect(() => {
-    // ALB → map-api → Kakao Map HTML 렌더링 반환
-    fetch(`${process.env.REACT_APP_ALB_URL}/map`)
+    fetch("/alb-config.json")
+      .then((res) => res.json())
+      .then((config) => {
+        if (config.albUrl) {
+          setBackendUrl(config.albUrl);
+        } else {
+          throw new Error("alb-config.json에 'albUrl' 키가 존재하지 않습니다.");
+        }
+      })
+      .catch((err) => {
+        console.error("❌ alb-config.json 로딩 실패:", err);
+      });
+  }, []);
+
+  // ✅ backendUrl 로드된 후: /map HTML 렌더링 요청
+  useEffect(() => {
+    if (!backendUrl) return;
+
+    fetch(`${backendUrl}/map`)
       .then((res) => res.text())
       .then((html) => {
         if (mapRef.current) {
           mapRef.current.innerHTML = html;
 
-          // Kakao Map 스크립트 로드 후, 클릭 이벤트 바인딩
-          if (window.initKakaoMap) {
-            window.initKakaoMap(onMapClick);
-          }
+          const tryInitMap = () => {
+            if (typeof window.initKakaoMap === "function") {
+              window.initKakaoMap(onMapClick);
+            } else {
+              console.warn("⚠️ window.initKakaoMap이 아직 로드되지 않음. 재시도합니다.");
+              setTimeout(tryInitMap, 100);
+            }
+          };
+          tryInitMap();
         }
+      })
+      .catch((err) => {
+        console.error("❌ map-api에서 지도 HTML 가져오기 실패:", err);
       });
-  }, []);
+  }, [backendUrl]);
 
-  // 지도 클릭 시: ALB → map-api → weather-api
+  // ✅ 지도 클릭 시 → backendUrl/map/weather로 좌표 전송
   const onMapClick = (lat, lon) => {
     setMarker({ lat, lon });
 
-    fetch(`${process.env.REACT_APP_ALB_URL}/map/weather?lat=${lat}&lon=${lon}`)
+    fetch(`${backendUrl}/map/weather?lat=${lat}&lon=${lon}`)
       .then((res) => res.json())
       .then((data) => setWeather(data))
-      .catch(() =>
-        setWeather({ error: "날씨 정보를 불러올 수 없습니다." })
-      );
+      .catch(() => {
+        setWeather({ error: "날씨 정보를 불러올 수 없습니다." });
+      });
   };
 
   return (
