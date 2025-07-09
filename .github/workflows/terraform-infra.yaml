@@ -151,7 +151,7 @@ jobs:
                   "topologySpreadConstraints": [{
                     "maxSkew": 1,
                     "topologyKey": "kubernetes.io/hostname",
-                    "whenUnsatisfiable": "ScheduleAnyway",
+                    "whenUnsatisfiable": "DoNotSchedule",
                     "labelSelector": {
                       "matchLabels": {
                         "k8s-app": "kube-dns"
@@ -163,6 +163,17 @@ jobs:
             }
           }'
           echo "✅ CoreDNS 분산 배포 설정 완료됨."
+
+      - name: Restart CoreDNS to Apply Spread Constraints
+        if: ${{ github.event.inputs.action == 'apply' }}
+        run: |
+          echo "🔁 CoreDNS Deployment 재시작 중..."
+          kubectl rollout restart deployment/coredns -n kube-system
+          echo "⏳ CoreDNS 상태 대기 중..."
+          kubectl rollout status deployment/coredns -n kube-system --timeout=120s
+          echo "✅ CoreDNS 재시작 및 분산 적용 완료됨."
+
+
       # ✅ CoreDNS 전체 로그 수집
       - name: Collect CoreDNS Logs
         if: ${{ github.event.inputs.action == 'apply' }}
