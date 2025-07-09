@@ -14,6 +14,8 @@ service:
 env:
   - name: AWS_REGION
     value: ap-northeast-2
+  - name: AWS_STS_REGIONAL_ENDPOINTS
+    value: regional
   - name: WEATHER_PARAM_NAME
     value: /dev/weather-api/openweather-api-key
 

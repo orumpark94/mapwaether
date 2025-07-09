@@ -15,9 +15,11 @@ service:
 env:
   - name: AWS_REGION
     value: ap-northeast-2
+  - name: AWS_STS_REGIONAL_ENDPOINTS
+    value: regional            # ✅ 이 줄을 추가해야 함
   - name: KAKAO_SSM_PATH
     value: /dev/map-api/kakao-api-key
-    
+
 
 serviceAccount:
   name: map-api-sa
