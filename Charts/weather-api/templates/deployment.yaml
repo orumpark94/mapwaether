@@ -24,6 +24,12 @@ spec:
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+          
           readinessProbe:
             httpGet:
               path: /health
