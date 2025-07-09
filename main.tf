@@ -2,6 +2,7 @@
 module "frontend_s3" {
   source      = "./modules/s3"
   bucket_name = var.s3_bucket_name
+  region      = var.region
 }
 
 #terrafrom state 파일 저장 s3

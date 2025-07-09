@@ -9,3 +9,7 @@ variable "name" {
   type        = string
   default     = "mapweather"   # ← 이렇게 default 값을 줌
 }
+
+variable "region" {
+  default = "ap-northeast-2"
+}

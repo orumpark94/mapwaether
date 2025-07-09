@@ -49,9 +49,9 @@ data "aws_iam_policy_document" "allow_public_read" {
   }
 }
 
-# ✅ SSM에 웹사이트 엔드포인트 저장 (insecure_value로 변경)
+# ✅ S3 웹 호스팅 DNS 주소를 SSM에 저장
 resource "aws_ssm_parameter" "frontend_endpoint" {
-  name           = "frontend-address"
-  type           = "String"
-  insecure_value = "http://${aws_s3_bucket_website_configuration.this.website_endpoint}"
+  name  = "frontend-address"
+  type  = "String"
+  value = "http://${aws_s3_bucket.frontend.bucket}.s3-website.${var.region}.amazonaws.com"
 }
