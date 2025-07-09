@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 
 function App() {
   const mapRef = useRef(null);
-  const [marker, setMarker] = useState(null);
   const [weather, setWeather] = useState(null);
   const [backendUrl, setBackendUrl] = useState("");
+  const [clickedLocation, setClickedLocation] = useState(null);
 
-  // ✅ alb-config.json에서 ALB 주소 동적 로딩
+  // ✅ 1. alb-config.json 로딩 (초기 1회)
   useEffect(() => {
     fetch("/alb-config.json")
       .then((res) => res.json())
@@ -14,7 +14,7 @@ function App() {
         if (config.albUrl) {
           setBackendUrl(config.albUrl);
         } else {
-          throw new Error("alb-config.json에 'albUrl' 키가 존재하지 않습니다.");
+          throw new Error("alb-config.json에 'albUrl' 키가 없습니다.");
         }
       })
       .catch((err) => {
@@ -22,7 +22,7 @@ function App() {
       });
   }, []);
 
-  // ✅ backendUrl 로드된 후: /map HTML 렌더링 요청
+  // ✅ 2. backendUrl이 로딩된 후 /map 요청 → Kakao Map HTML 렌더링
   useEffect(() => {
     if (!backendUrl) return;
 
@@ -31,45 +31,54 @@ function App() {
       .then((html) => {
         if (mapRef.current) {
           mapRef.current.innerHTML = html;
-
-          const tryInitMap = () => {
-            if (typeof window.initKakaoMap === "function") {
-              window.initKakaoMap(onMapClick);
-            } else {
-              console.warn("⚠️ window.initKakaoMap이 아직 로드되지 않음. 재시도합니다.");
-              setTimeout(tryInitMap, 100);
-            }
-          };
-          tryInitMap();
         }
       })
       .catch((err) => {
-        console.error("❌ map-api에서 지도 HTML 가져오기 실패:", err);
+        console.error("❌ Kakao Map HTML 로딩 실패:", err);
       });
   }, [backendUrl]);
 
-  // ✅ 지도 클릭 시 → backendUrl/map/weather로 좌표 전송
-  const onMapClick = (lat, lon) => {
-    setMarker({ lat, lon });
+  // ✅ 3. 메시지 수신 → 좌표 받아서 날씨 요청
+  useEffect(() => {
+    const listener = (event) => {
+      if (!event.data || typeof event.data !== "object") return;
+      const { lat, lon } = event.data;
+      if (lat && lon) {
+        setClickedLocation({ lat, lon });
+        fetchWeather(lat, lon);
+      }
+    };
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, [backendUrl]);
 
-    fetch(`${backendUrl}/map/weather?lat=${lat}&lon=${lon}`)
-      .then((res) => res.json())
-      .then((data) => setWeather(data))
-      .catch(() => {
-        setWeather({ error: "날씨 정보를 불러올 수 없습니다." });
-      });
+  // ✅ 4. 날씨 요청 함수
+  const fetchWeather = async (lat, lon) => {
+    try {
+      const res = await fetch(`${backendUrl}/map/weather?lat=${lat}&lon=${lon}`);
+      const data = await res.json();
+      setWeather(data);
+    } catch (err) {
+      console.error("❌ 날씨 정보 요청 실패:", err);
+      setWeather({ error: "날씨 정보를 불러올 수 없습니다." });
+    }
   };
 
+  // ✅ 5. 렌더링
   return (
     <div style={{ padding: 24, maxWidth: 600, margin: "auto" }}>
       <h2>
         지도에서 위치를 선택하면 <br /> 해당 지역의 날씨 정보를 확인할 수 있습니다.
       </h2>
-      <div ref={mapRef} style={{ width: "100%", height: "400px" }} />
+
+      {/* 지도 렌더링 영역 */}
+      <div ref={mapRef} style={{ width: "100%", height: "400px", border: "1px solid #ccc" }} />
+
+      {/* 선택된 위치 + 날씨 정보 출력 */}
       <div style={{ marginTop: 20 }}>
-        {marker && (
+        {clickedLocation && (
           <div>
-            선택된 위치: <b>{marker.lat.toFixed(4)}, {marker.lon.toFixed(4)}</b>
+            선택된 위치: <b>{clickedLocation.lat.toFixed(4)}, {clickedLocation.lon.toFixed(4)}</b>
           </div>
         )}
         {weather && (
@@ -78,9 +87,12 @@ function App() {
               <div style={{ color: "red" }}>{weather.error}</div>
             ) : (
               <>
-                <div><b>날씨:</b> {weather.weather?.[0]?.description ?? "N/A"}</div>
-                <div><b>온도:</b> {weather.main?.temp ?? "N/A"} ℃</div>
-                <div><b>습도:</b> {weather.main?.humidity ?? "N/A"} %</div>
+                <div><b>날씨:</b> {weather.weather.description}</div>
+                <div><b>온도:</b> {weather.weather.temperature} ℃</div>
+                <img
+                  src={`http://openweathermap.org/img/wn/${weather.weather.icon}@2x.png`}
+                  alt="weather icon"
+                />
               </>
             )}
           </div>
