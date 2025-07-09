@@ -28,7 +28,7 @@ spec:
           lifecycle:
             postStart:
               exec:
-                command: ["/bin/sh", "-c", "sleep 10"]
+                command: ["/bin/sh", "-c", "sleep 15"]
           
           readinessProbe:
             httpGet:
