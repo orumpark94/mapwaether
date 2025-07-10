@@ -34,6 +34,6 @@ spec:
             httpGet:
               path: /health
               port: {{ .Values.containerPort }}
-            initialDelaySeconds: 45
+            initialDelaySeconds: 60
             periodSeconds: 15
             failureThreshold: 5
