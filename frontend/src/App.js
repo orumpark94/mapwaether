@@ -6,7 +6,7 @@ function App() {
   const [backendUrl, setBackendUrl] = useState("");
   const [clickedLocation, setClickedLocation] = useState(null);
 
-  // ✅ 1. alb-config.json 로딩 (초기 1회)
+  // ✅ 1. alb-config.json 로딩
   useEffect(() => {
     fetch("/alb-config.json")
       .then((res) => res.json())
@@ -22,47 +22,53 @@ function App() {
       });
   }, []);
 
-// ✅ 2. backendUrl이 로딩된 후 /map 요청 → Kakao Map HTML + script 추출 실행
-useEffect(() => {
-  if (!backendUrl) return;
+  // ✅ 2. backendUrl이 로딩된 후 /map 요청 → Kakao Map HTML + script 실행
+  useEffect(() => {
+    if (!backendUrl) return;
 
-  fetch(`${backendUrl}/map`)
-    .then((res) => res.text())
-    .then((html) => {
-      if (mapRef.current) {
-        // 🧩 HTML 파싱
+    fetch(`${backendUrl}/map`)
+      .then((res) => res.text())
+      .then((html) => {
+        if (!mapRef.current) return;
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
 
-        // ✅ #map 요소만 추출해서 삽입
+        // 지도 영역 렌더링
         const mapDiv = doc.querySelector("#map");
         if (mapDiv) {
           mapRef.current.innerHTML = mapDiv.outerHTML;
         }
 
-        // ✅ <script> 태그들 실행 (SDK + 지도 초기화 코드)
         const scripts = doc.querySelectorAll("script");
+        const inlineScripts = [];
+
         scripts.forEach((scriptTag) => {
-          const newScript = document.createElement("script");
-
           if (scriptTag.src) {
-            // 외부 스크립트 (예: Kakao SDK)
-            newScript.src = scriptTag.src;
+            // Kakao SDK script
+            const sdkScript = document.createElement("script");
+            sdkScript.src = scriptTag.src;
+            sdkScript.onload = () => {
+              console.log("✅ Kakao SDK 로딩 완료");
+
+              // 인라인 스크립트 실행
+              inlineScripts.forEach((code) => {
+                const inline = document.createElement("script");
+                inline.textContent = code;
+                document.body.appendChild(inline);
+              });
+            };
+            document.body.appendChild(sdkScript);
           } else {
-            // 인라인 스크립트 (지도 생성 등)
-            newScript.textContent = scriptTag.textContent;
+            // 인라인 스크립트는 나중에 실행
+            inlineScripts.push(scriptTag.textContent);
           }
-
-          // ⚠️ script 삽입은 반드시 DOM에 추가해야 실행됨
-          document.body.appendChild(newScript);
         });
-      }
-    })
-    .catch((err) => {
-      console.error("❌ Kakao Map HTML 로딩 실패:", err);
-    });
-}, [backendUrl]);
-
+      })
+      .catch((err) => {
+        console.error("❌ Kakao Map HTML 로딩 실패:", err);
+      });
+  }, [backendUrl]);
 
   // ✅ 3. 메시지 수신 → 좌표 받아서 날씨 요청
   useEffect(() => {
