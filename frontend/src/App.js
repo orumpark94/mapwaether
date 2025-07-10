@@ -22,21 +22,47 @@ function App() {
       });
   }, []);
 
-  // ✅ 2. backendUrl이 로딩된 후 /map 요청 → Kakao Map HTML 렌더링
-  useEffect(() => {
-    if (!backendUrl) return;
+// ✅ 2. backendUrl이 로딩된 후 /map 요청 → Kakao Map HTML + script 추출 실행
+useEffect(() => {
+  if (!backendUrl) return;
 
-    fetch(`${backendUrl}/map`)
-      .then((res) => res.text())
-      .then((html) => {
-        if (mapRef.current) {
-          mapRef.current.innerHTML = html;
+  fetch(`${backendUrl}/map`)
+    .then((res) => res.text())
+    .then((html) => {
+      if (mapRef.current) {
+        // 🧩 HTML 파싱
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // ✅ #map 요소만 추출해서 삽입
+        const mapDiv = doc.querySelector("#map");
+        if (mapDiv) {
+          mapRef.current.innerHTML = mapDiv.outerHTML;
         }
-      })
-      .catch((err) => {
-        console.error("❌ Kakao Map HTML 로딩 실패:", err);
-      });
-  }, [backendUrl]);
+
+        // ✅ <script> 태그들 실행 (SDK + 지도 초기화 코드)
+        const scripts = doc.querySelectorAll("script");
+        scripts.forEach((scriptTag) => {
+          const newScript = document.createElement("script");
+
+          if (scriptTag.src) {
+            // 외부 스크립트 (예: Kakao SDK)
+            newScript.src = scriptTag.src;
+          } else {
+            // 인라인 스크립트 (지도 생성 등)
+            newScript.textContent = scriptTag.textContent;
+          }
+
+          // ⚠️ script 삽입은 반드시 DOM에 추가해야 실행됨
+          document.body.appendChild(newScript);
+        });
+      }
+    })
+    .catch((err) => {
+      console.error("❌ Kakao Map HTML 로딩 실패:", err);
+    });
+}, [backendUrl]);
+
 
   // ✅ 3. 메시지 수신 → 좌표 받아서 날씨 요청
   useEffect(() => {
