@@ -53,5 +53,5 @@ data "aws_iam_policy_document" "allow_public_read" {
 resource "aws_ssm_parameter" "frontend_endpoint" {
   name  = "frontend-address"
   type  = "String"
-  value = "http://${aws_s3_bucket.frontend.bucket}.s3-website.${var.region}.amazonaws.com"
+  value = "http://${aws_s3_bucket.this.bucket}.s3-website.${var.region}.amazonaws.com"
 }
